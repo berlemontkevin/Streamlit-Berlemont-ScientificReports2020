@@ -1,55 +1,70 @@
-import numpy as np
+import streamlit as st
 import pandas as pd
-from sklearn.datasets import load_iris
-from sklearn.feature_selection import mutual_info_classif, SelectKBest
-from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import MinMaxScaler
-import joblib
+import numpy as np
+import plotly.express as px
 
 
-X = pd.DataFrame(load_iris()['data'], columns=load_iris()['feature_names'])
-y = load_iris()['target']
+st.title("Nonlinear neural network dynamics accounts for human confidence in a sequence of perceptual decisions - Berlemont et al., Scientific Reports 2020")
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.1, random_state=11)
-
-def model(X, y):
-    X = X.copy()
-    y = y.copy()
-    pipeline = Pipeline(steps=[['scaler', MinMaxScaler()],
-                               ['feature_selection', SelectKBest(score_func=mutual_info_classif)],
-                               ['classifier', LogisticRegression(random_state=11, max_iter=1000)]])
-    
-    param_grid = {'feature_selection__k': range(1, X.shape[1]),
-                  'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
-    
-    grid_search = GridSearchCV(estimator=pipeline,
-                               param_grid=param_grid,
-                               scoring='accuracy',
-                               n_jobs=-1,
-                               cv=3)
-    
-    grid_search.fit(X, y)
-    
-    return grid_search
+st.markdown(''' Electrophysiological recordings during perceptual decision tasks in monkeys suggest that the degree of confidence in a decision is based on a simple neural signal produced by the neural decision process. Attractor neural networks provide an appropriate biophysical modeling framework, and account for the experimental results very well. However, it remains unclear whether attractor neural networks can account for confidence reports in humans. We present the results from an experiment in which participants are asked to perform an orientation discrimination task, followed by a confidence judgment. Here we show that an attractor neural network model quantitatively reproduces, for each participant, the relations between accuracy, response times and confidence. We show that the attractor neural network also accounts for confidence-specific sequential effects observed in the experiment (participants are faster on trials following high confidence trials). Remarkably, this is obtained as an inevitable outcome of the network dynamics, without any feedback specific to the previous decision (that would result in, e.g., a change in the model parameters before the onset of the next trial). Our results thus suggest that a metacognitive process such as confidence in one’s decision is linked to the intrinsically nonlinear dynamics of the decision-making neural network.
+''')
 
 
-pipeline = Pipeline(steps=[['scaler', MinMaxScaler()],
-                           ['feature_selection', SelectKBest(score_func=mutual_info_classif,
-                                                             k=3)],
-                           ['classifier', LogisticRegression(random_state=11,
-                                                             max_iter=1000,
-                                                             C=1000)]])
+df = pd.read_csv('data/Manip3.csv')
 
-#Refitting the pipeline to the data to find features selected
-pipeline.fit(X_train, y_train)
-feature_selection = (pipeline['feature_selection']).scores_
-feature_scores = {key: value for key,value in zip(X_train.columns, (np.round(pipeline['feature_selection'].scores_,2)))}
+fig = px.box(df, y ='Rt1', x= 'Name', color = 'Name')
+st.plotly_chart(fig)
 
-#Fitting the final model from GridSearchCV
-iris_model = model(X_train, y_train)
-joblib.dump(iris_model, 'iris_model.pkl')
 
-print(f'Best params: {iris_model.best_params_}\nBest score: {iris_model.best_score_}\nFeatures scores: {feature_scores}')
-view raw1.py
+st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+name = st.radio("Participant",[1,2,3,5,6,7,8])
+
+col1,col2 = st.columns(2)
+# perform groupby
+res = df[df['Name']== name]
+fig2 = px.histogram(res, x = 'Resp2', color = 'Name')
+# fig2.update_traces(marker = dict(size=14))
+# res_temp = res.groupby().mean.rese
+res['absAngle'] = abs(res['AngleValue'])
+fig2.update_layout(width=500,
+    height=500)
+res_temp = res.groupby('absAngle')[['Rt1', 'Acc']].mean().reset_index()
+res_temp['Acc'] += 1
+res_temp['Acc'] /=2
+fig3 = px.line(res_temp, x = 'absAngle', y = 'Acc', markers = True)
+fig3.update_layout(width=400,
+    height=500)
+# fig2.update_traces(marker = dict(size=14))
+col1.plotly_chart(fig3)
+col2.plotly_chart(fig2)
+
+
+total_df = pd.DataFrame(columns = ['Participant', 'Confidence level', 'RT(s)', 'Acc'])
+
+for i in range(6):
+    j = i+1
+    temp = pd.read_csv('data/RT'+str(j)+'.csv')
+    tempA = pd.read_csv('data/Acc'+str(j)+'.csv')
+
+    for k in range(10):
+        t = 'C' + str(k)
+        temp_df = pd.DataFrame(data = {'Participant':[j], 'Confidence level':[k], 'RT(s)':[temp[t].mean()/1000], 'Acc':[(tempA[t].mean()+1)/2]})
+        total_df= pd.concat([total_df,temp_df]) 
+
+
+fig_temp = px.line(total_df, x = 'Confidence level', y='RT(s)', color='Participant',facet_col='Participant', facet_col_wrap = 3, markers = True)
+st.plotly_chart(fig_temp)
+
+
+fig_temp_acc = px.line(total_df, x = 'Confidence level', y='Acc', color='Participant',facet_col='Participant', facet_col_wrap = 3, markers = True)
+st.plotly_chart(fig_temp_acc)
+
+
+
+
+
+
+
+
+
+

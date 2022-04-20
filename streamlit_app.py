@@ -118,7 +118,9 @@ class Model(object):
 st.title("Nonlinear neural network dynamics accounts for human confidence in a sequence of perceptual decisions - Berlemont et al., Scientific Reports 2020")
 
 
-st.markdown(''' I designed this Streamlit app to provide an interactive visualization of the data of **Nonlinear neural network dynamics accounts for human confidence in a sequence of perceptual decisions - Berlemont et al., Scientific Reports 2020** and the dynamics of the associated model. More details on the experimental setup and the model can be found in the paper online (and the code on github https://github.com/berlemontkevin/Confidence_NeuralNetwork_ScientificReports2020). 
+st.markdown(''' I designed this Streamlit app to provide an interactive visualization of the data of **Nonlinear neural network dynamics accounts for human confidence in a sequence of perceptual decisions - Berlemont et al., Scientific Reports 2020** and the dynamics of the associated model. More details on the experimental setup and the model can be found:
+            - in the paper online: https://www.nature.com/articles/s41598-020-63582-8
+            - and the code on github: https://github.com/berlemontkevin/Confidence_NeuralNetwork_ScientificReports2020
             
 The presentation will be divided in two parts. First, I will show an interactive model of the model. Then, I will describe and show the experimental results.
             

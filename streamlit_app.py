@@ -117,51 +117,54 @@ class Model(object):
 
 st.title("Nonlinear neural network dynamics accounts for human confidence in a sequence of perceptual decisions - Berlemont et al., Scientific Reports 2020")
 
-st.markdown(''' Electrophysiological recordings during perceptual decision tasks in monkeys suggest that the degree of confidence in a decision is based on a simple neural signal produced by the neural decision process. Attractor neural networks provide an appropriate biophysical modeling framework, and account for the experimental results very well. However, it remains unclear whether attractor neural networks can account for confidence reports in humans. We present the results from an experiment in which participants are asked to perform an orientation discrimination task, followed by a confidence judgment. Here we show that an attractor neural network model quantitatively reproduces, for each participant, the relations between accuracy, response times and confidence. We show that the attractor neural network also accounts for confidence-specific sequential effects observed in the experiment (participants are faster on trials following high confidence trials). Remarkably, this is obtained as an inevitable outcome of the network dynamics, without any feedback specific to the previous decision (that would result in, e.g., a change in the model parameters before the onset of the next trial). Our results thus suggest that a metacognitive process such as confidence in one’s decision is linked to the intrinsically nonlinear dynamics of the decision-making neural network.
-''')
+
+st.markdown(''' I designed this Streamlit app to provide an interactive visualization of the data of **Nonlinear neural network dynamics accounts for human confidence in a sequence of perceptual decisions - Berlemont et al., Scientific Reports 2020** and the dynamics of the associated model. More details on the experimental setup and the model can be found in the paper online (and the code on github https://github.com/berlemontkevin/Confidence_NeuralNetwork_ScientificReports2020). 
+            
+The presentation will be divided in two parts. First, I will show an interactive model of the model. Then, I will describe and show the experimental results.
+            
+            
+Electrophysiological recordings during perceptual decision tasks in monkeys suggest that the degree of confidence in a decision is based on a simple neural signal produced by the neural decision process. Attractor neural networks provide an appropriate biophysical modeling framework, and account for the experimental results very well. However, it remains unclear whether attractor neural networks can account for confidence reports in humans. We present the results from an experiment in which participants are asked to perform an orientation discrimination task, followed by a confidence judgment.
+            
+            ''')
 
 
 
-# Descirption of the data
-df = pd.read_csv('data/Manip3.csv')
-
-fig = px.box(df, y ='Rt1', x= 'Name', color = 'Name')
-st.plotly_chart(fig)
-
-
-st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
-name = st.radio("Participant Number",[1,2,3,5,6,7,8])
-
-# Plot RTs and ACC of the Participants
-col1,col2 = st.columns(2)
-# perform groupby
-res = df[df['Name']== name]
-fig2 = px.histogram(res, x = 'Resp2', color = 'Name')
-res['absAngle'] = abs(res['AngleValue'])
-fig2.update_layout(width=500, height=500)
-res_temp = res.groupby('absAngle')[['Rt1', 'Acc']].mean().reset_index()
-res_temp['Acc'] += 1
-res_temp['Acc'] /=2
-fig3 = px.line(res_temp, x = 'absAngle', y = 'Acc', markers = True)
-fig3.update_layout(width=400,
-    height=500)
-col1.plotly_chart(fig3)
-col2.plotly_chart(fig2)
-####################################
 
 # Model example
 
-coh = st.slider('Coh', -30, 30, step = 1)
+st.subheader(''' Brief description of the model''')
 
-modelparams['gE'] = st.sidebar.slider('gE', 0., 0.4, step = 0.01, value = 0.2609)
-modelparams['gI'] = st.sidebar.slider('gI', 0.1, 0.0, step = 0.01, value = -0.0497)
-modelparams['mu0'] = st.sidebar.slider('mu0', 0., 40., step = 1., value = 20.0)
+st.markdown(''' The neural network model I consider is composed of two neural pools (figure below) that are selective to the two different choices. In other words, during the decision task, both neural populations receive evidence selective to one of the two options. The dynamics is a winner-take-all dynamics meaning that  after some time one of the population is active and the other isn't. The one active corresponds to the decision made by the network in the decision task. 
+            
+            
+The amount of evidence in favor of decision 1 or decision 2 is represented by the coherence level *c*.''')
+
+col1, col2, col3 = st.columns([2,4,2])
+with col1:
+    st.write("")
+
+with col2:
+    st.image('./fig/fig_attractor.png', caption = 'Schematic of the attractor neural network')
+with col3:
+    st.write("")
+
+st.markdown('''Thus, population *i* receives the following stimulus: ''')
+st.latex(r''' I_{stim,i}=  J_{ext} \left( 1 \pm c_{\theta} \right)
+''')
+
+st.markdown(''' The left sidebar, and the one belows modify the parameters of the neural network. The red curve corresponds to decision 2 (coherence level negative) and the blue one to a positive coherence level (decision 1). By sliding the coherence level towards the right, one can see that  the model switches its decision towards decision 1, as the network receives more evidence for this choice.''')
+
+coh = st.slider('Coherence level', -30, 30, step = 1)
+
+modelparams['gE'] = st.sidebar.slider('gE (nA)', 0., 0.4, step = 0.01, value = 0.2609)
+modelparams['gI'] = st.sidebar.slider('gI (nA)', 0.1, 0.0, step = 0.01, value = -0.0497)
+modelparams['mu0'] = st.sidebar.slider('mu0 (Hz)', 0., 40., step = 1., value = 20.0)
 
 st.sidebar.markdown('---')
 st.sidebar.markdown('## Time Parameters')
-modelparams['Ttotal'] = st.sidebar.slider('Ttotal', 0., 2., step = 0.1, value = 2.)
-modelparams['Tstim_on'] = st.sidebar.slider('Tstim_on', 0., 1., step = 0.1, value = 0.1)
-modelparams['Tstim_off'] = st.sidebar.slider('Tstim_on', 1., 2., step = 0.1, value = 1.)
+modelparams['Ttotal'] = st.sidebar.slider('Ttotal (seconds)', 0., 2., step = 0.1, value = 2.)
+modelparams['Tstim_on'] = st.sidebar.slider('Tstim_on (seconds)', 0., 1., step = 0.1, value = 0.1)
+modelparams['Tstim_off'] = st.sidebar.slider('Tstim_on (seconds)', 1., 2., step = 0.1, value = 1.)
 
 
 model = Model(modelparams)
@@ -172,42 +175,132 @@ temp_df_model = pd.DataFrame(data = {'t':model.t, 'r1':model.r1, 'r2':model.r2, 
 fig_model = make_subplots(rows=1, cols=1)
 
 fig_model.add_trace(
-    go.Scatter(x=model.t, y=model.r1, mode = 'lines', name = 'r1'),
+    go.Scatter(x=model.t, y=model.r1, mode = 'lines', name = 'Population 1'),
     row=1, col=1)
 fig_model.add_trace(
-    go.Scatter(x=model.t, y=model.r2, mode = 'lines', name = 'r2'),
+    go.Scatter(x=model.t, y=model.r2, mode = 'lines', name = 'Population 2'),
     row=1, col=1)
-
-# fig_model.add_trace(
-#     go.Scatter(x=model.r1, y=model.r2, mode = 'lines'),
-#     row=1, col=2)
-# fig_model.update_xaxes(title_text="xaxis 2 title", range=[0, 35], row=1, col=2)
-# fig_model.update_yaxes(title_text="xaxis 2 title", range=[0, 35], row=1, col=2)
+fig_model.update_layout(
+    title="Neural activity timecourse",
+    xaxis_title="Time (s)",
+    yaxis_title="Firing Rate (Hz)")
 
 st.plotly_chart(fig_model)
    
 
 ############
 
-total_df = pd.DataFrame(columns = ['Participant', 'Confidence level', 'RT(s)', 'Acc'])
 
-for i in range(6):
-    j = i+1
-    temp = pd.read_csv('data/RT'+str(j)+'.csv')
-    tempA = pd.read_csv('data/Acc'+str(j)+'.csv')
+st.subheader(''' Experimental results''')
 
-    for k in range(10):
+st.markdown(''' In the experiments, particpants have to look at a screen and report if the orientation of the Gabor patch is clockwise or counterclockwise. Moreover, at the end of the trials, participants report their confidence on a scale from 1 to 10. ''')
+
+st.image('./fig/exp-procedure.png', caption = 'Description of the experimental setup. More details in the published version of the paper.')
+
+st.markdown('''The data cleaning procedure is detailed in the Methods section of the *Scientific Reports* research article. The following figure represents the reaction time of all the participants (across all trial conditions).  ''')
+# Descirption of the data
+df = pd.read_csv('data/Manip3.csv')
+
+fig = px.box(df, y ='Rt1', x= 'Name', color = 'Name',
+             labels = {'Rt1' : 'Reaction time (s)',
+                       'Name' : 'Participant Number'},
+             title = 'Reaction time of the participants')
+st.plotly_chart(fig)
+
+
+
+
+st.markdown('''Individual performances and confidence distribution of the participants can be selected on the figure below. ''')
+
+st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+name = st.radio("Participant Number",[1,2,3,5,6,7,8,9])
+
+# Plot RTs and ACC of the Participants
+col1,col2 = st.columns(2)
+# perform groupby
+res = df[df['Name']== name]
+fig2 = px.histogram(res, x = 'Resp2', color = 'Name',
+                    labels = {'Resp2' : 'Confidence level',
+                              'Name' : 'Participant Number'},
+                    title = 'Confidence distribution')
+res['absAngle'] = abs(res['AngleValue'])
+fig2.update_layout(width=500, height=500)
+res_temp = res.groupby('absAngle')[['Rt1', 'Acc']].mean().reset_index()
+res_temp['Acc'] += 1
+res_temp['Acc'] /=2
+fig3 = px.line(res_temp, x = 'absAngle', y = 'Acc', markers = True,
+               labels = {'absAngle' : 'Absolute value of orientation (degree)',
+                         'Acc' : 'Accuracy'},
+               title = 'Accuracy vs. orientation')
+fig3.update_layout(width=400,
+    height=500)
+col1.plotly_chart(fig3)
+col2.plotly_chart(fig2)
+####################################
+
+
+st.subheader('Model and Experiment comparison')
+
+
+
+st.markdown('''One of the main research result of my article is the relation between accuracy, reaction time and confidence from a modeling point of view. One can observe that the model is matching the experimental results for all the participants. The mainnresults being the following:
+            - Reaction time decreases with confidence level
+            - Accuracy increases with confidence level
+            
+            
+If you would like more information on the model,data or more detailed figures, don't hesitate to check the academic publication as this streamlit app is to give an overview of the model, data and results only.
+            ''')
+
+
+
+# st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+j = st.radio("Participant Number",[1,3,5,6,7,9], key = 1)
+
+
+total_df = pd.DataFrame(columns = ['Participant', 'Confidence level', 'RT(s)', 'Acc', 'Exp:'])
+
+
+df = pd.read_csv('data/Manip3.csv')
+
+df_n = df[df['Name'] == j]
+
+
+
+temp = pd.read_csv('data/RT'+str(j)+'.csv')
+tempA = pd.read_csv('data/Acc'+str(j)+'.csv')
+
+for k in range(10):
         t = 'C' + str(k)
-        temp_df = pd.DataFrame(data = {'Participant':[j], 'Confidence level':[k], 'RT(s)':[temp[t].mean()/1000], 'Acc':[(tempA[t].mean()+1)/2]})
-        total_df= pd.concat([total_df,temp_df]) 
+        temp_df_n = df_n[df_n['Resp2'] == k]
+        temp_df = pd.DataFrame(data = {'Participant':[j], 'Confidence level':[k], 'RT(s)':[temp[t].mean()/1000], 'Acc':[(tempA[t].mean()+1)/2], 'Exp:' : 'Model'})
+        total_df= pd.concat([total_df,temp_df])
+        temp_df = pd.DataFrame(data = {'Participant':[j], 'Confidence level':[k], 'RT(s)':[temp_df_n['Rt1'].mean()], 'Acc':[(temp_df_n['Acc'].mean()+1)/2], 'Exp:' : 'Data'})
+        total_df= pd.concat([total_df,temp_df])
 
 
-fig_temp = px.line(total_df, x = 'Confidence level', y='RT(s)', color='Participant',facet_col='Participant', facet_col_wrap = 3, markers = True)
+fig_temp = go.Figure()
+temp_total = total_df[total_df['Exp:'] == 'Model']
+fig_temp.add_trace(go.Scatter(x = temp_total['Confidence level'], y = temp_total['RT(s)'], mode = 'lines', name = 'Model'))
+temp_total = total_df[total_df['Exp:'] == 'Data']
+fig_temp.add_trace(go.Scatter(x = temp_total['Confidence level'], y = temp_total['RT(s)'], mode = 'markers', name = 'Experimental data'))
+fig_temp.update_layout(
+    title="Participant " +str(j) + ": Reaction time vs. Confidence level",
+    xaxis_title="Confidence level",
+    yaxis_title="Reaction Time (s)")
+# fig_temp = px.line(total_df, x = 'Confidence level', y='RT(s)', color='Participant',facet_col='Participant', facet_col_wrap = 3, markers = True, style = 'Exp:')
 st.plotly_chart(fig_temp)
 
 
-fig_temp_acc = px.line(total_df, x = 'Confidence level', y='Acc', color='Participant',facet_col='Participant', facet_col_wrap = 3, markers = True)
-st.plotly_chart(fig_temp_acc)
+fig_temp_acc = go.Figure()
+temp_total = total_df[total_df['Exp:'] == 'Model']
+fig_temp_acc.add_trace(go.Scatter(x = temp_total['Confidence level'], y = temp_total['Acc'], mode = 'lines', name = 'Model'))
+temp_total = total_df[total_df['Exp:'] == 'Data']
+fig_temp_acc.add_trace(go.Scatter(x = temp_total['Confidence level'], y = temp_total['Acc'], mode = 'markers', name = 'Experimental data'))
+fig_temp_acc.update_layout(
+    title="Participant " +str(j) + ": Accuracy vs. Confidence level",
+    xaxis_title="Confidence level",
+    yaxis_title="Accuracy")
+st.plotly_chart(fig_temp_acc) 
 
 
 
